@@ -1,35 +1,22 @@
-# Core AI/ML - PyTorch (CUDA 12.4 wheels)
+# PyTorch (CUDA 12.4 wheels) — must come before iopaint so the right torch is used
 --extra-index-url https://download.pytorch.org/whl/cu124
 torch>=2.4.0
 torchvision>=0.19.0
 
-# Inpainting backend - include here so the resolver sees ALL constraints at once
-# and can satisfy iopaint's pinned sub-deps (peft==0.7.1 etc.) alongside everything else
+# Inpainting backend
+# iopaint has rigid exact-version pins (pillow==9.5.0, peft==0.7.1, diffusers 0.27.x, etc.)
+# Let it own all those transitive deps — do NOT add conflicting explicit constraints below.
 iopaint
 
-# Image / Vision processing
+# OpenCV headless (iopaint does not pin this)
 opencv-python-headless>=4.8.0,<4.12.0
-Pillow>=10.0.0
+
+# numpy compat guard (shared constraint — iopaint also needs numpy<2)
 numpy<2
 
-# HuggingFace ecosystem
-# Bounds enforced below so uv picks the highest version compatible with iopaint's sub-deps
-# (iopaint's peft==0.7.1 requires diffusers<0.29, and diffusers<0.29 needs huggingface-hub<1.0)
-transformers>=4.48.0,<5.0.0
-diffusers>=0.27.0,<0.29.0
-huggingface-hub>=0.20.0,<1.0.0
-
-# Utilities
+# Utilities not pulled in by iopaint
 loguru
 click
 tqdm
 psutil
 pyyaml
-pydantic
-typer
-einops
-omegaconf
-easydict
-yacs
-fastapi
-uvicorn
