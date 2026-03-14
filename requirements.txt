@@ -1,20 +1,23 @@
-# Core AI/ML - CUDA 12.4 versions
+# Core AI/ML - PyTorch (CUDA 12.4 wheels)
 --extra-index-url https://download.pytorch.org/whl/cu124
 torch>=2.4.0
 torchvision>=0.19.0
-# Must be pinned: newer diffusers requires peft>=0.17.0 but iopaint pins peft==0.7.1
-diffusers>=0.27.0,<0.29.0
-# Must be pinned: diffusers 0.27.x imports cached_download removed in huggingface_hub 1.0.0
-huggingface-hub>=0.20.0,<1.0.0
-# Must be pinned: iopaint was designed for transformers 4.x
-transformers>=4.48.0,<5.0.0
-numpy<2
 
-# Image/Video processing
+# Inpainting backend - include here so the resolver sees ALL constraints at once
+# and can satisfy iopaint's pinned sub-deps (peft==0.7.1 etc.) alongside everything else
+iopaint
+
+# Image / Vision processing
 opencv-python-headless>=4.8.0,<4.12.0
 Pillow>=10.0.0
+numpy<2
 
-# Inpainting core (iopaint installed separately with --no-deps to avoid resolver conflicts)
+# HuggingFace ecosystem
+# Bounds enforced below so uv picks the highest version compatible with iopaint's sub-deps
+# (iopaint's peft==0.7.1 requires diffusers<0.29, and diffusers<0.29 needs huggingface-hub<1.0)
+transformers>=4.48.0,<5.0.0
+diffusers>=0.27.0,<0.29.0
+huggingface-hub>=0.20.0,<1.0.0
 
 # Utilities
 loguru
@@ -22,3 +25,11 @@ click
 tqdm
 psutil
 pyyaml
+pydantic
+typer
+einops
+omegaconf
+easydict
+yacs
+fastapi
+uvicorn
