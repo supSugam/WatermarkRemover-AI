@@ -1,20 +1,22 @@
-# PyTorch (CUDA 12.4 wheels) — must come before iopaint so the right torch is used
+# PyTorch (CUDA 12.4 wheels)
 --extra-index-url https://download.pytorch.org/whl/cu124
 torch>=2.4.0
 torchvision>=0.19.0
 
-# Inpainting backend
-# iopaint has rigid exact-version pins (pillow==9.5.0, peft==0.7.1, diffusers 0.27.x, etc.)
-# Let it own all those transitive deps — do NOT add conflicting explicit constraints below.
-iopaint
+# HuggingFace ecosystem
+# transformers must be >=4.35 for Florence-2 trust_remote_code to work.
+# iopaint is installed --no-deps so it cannot downgrade these.
+transformers>=4.35.0,<5.0.0
+# diffusers 0.29+ checks peft>=0.17 but iopaint only provides peft==0.7.1 → stay <0.29
+diffusers>=0.27.0,<0.29.0
+# diffusers 0.27.x still imports cached_download which was removed in huggingface_hub 1.0
+huggingface-hub>=0.20.0,<1.0.0
 
-# OpenCV headless (iopaint does not pin this)
+# Computer vision
 opencv-python-headless>=4.8.0,<4.12.0
-
-# numpy compat guard (shared constraint — iopaint also needs numpy<2)
 numpy<2
 
-# Utilities not pulled in by iopaint
+# Utilities
 loguru
 click
 tqdm
