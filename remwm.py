@@ -10,7 +10,7 @@ import huggingface_hub
 if not hasattr(huggingface_hub, 'cached_download'):
     huggingface_hub.cached_download = huggingface_hub.hf_hub_download
 
-from transformers import AutoProcessor, Florence2ForConditionalGeneration
+from transformers import AutoProcessor, AutoModelForCausalLM
 from iopaint.model_manager import ModelManager
 from iopaint.schema import HDStrategy, LDMSampler, InpaintRequest as Config
 import torch
@@ -71,7 +71,7 @@ class TaskType(str, Enum):
     OPEN_VOCAB_DETECTION = "<OPEN_VOCABULARY_DETECTION>"
     """Detect bounding box for objects and OCR text"""
 
-def identify(task_prompt: TaskType, image: MatLike, text_input: str, model: Florence2ForConditionalGeneration, processor: AutoProcessor, device: str):
+def identify(task_prompt: TaskType, image: MatLike, text_input: str, model: AutoModelForCausalLM, processor: AutoProcessor, device: str):
     if not isinstance(task_prompt, TaskType):
         raise ValueError(f"task_prompt must be a TaskType, but {task_prompt} is of type {type(task_prompt)}")
 
@@ -91,7 +91,7 @@ def identify(task_prompt: TaskType, image: MatLike, text_input: str, model: Flor
         generated_text, task=task_prompt.value, image_size=(image.width, image.height)
     )
 
-def get_watermark_mask(image: MatLike, model: Florence2ForConditionalGeneration, processor: AutoProcessor, device: str, max_bbox_percent: float, detection_prompt: str = "watermark"):
+def get_watermark_mask(image: MatLike, model: AutoModelForCausalLM, processor: AutoProcessor, device: str, max_bbox_percent: float, detection_prompt: str = "watermark"):
     """
     Detect watermarks and create a mask for inpainting.
 
@@ -123,7 +123,7 @@ def get_watermark_mask(image: MatLike, model: Florence2ForConditionalGeneration,
     return mask
 
 
-def detect_only(image: MatLike, model: Florence2ForConditionalGeneration, processor: AutoProcessor, device: str, max_bbox_percent: float, detection_prompt: str = "watermark"):
+def detect_only(image: MatLike, model: AutoModelForCausalLM, processor: AutoProcessor, device: str, max_bbox_percent: float, detection_prompt: str = "watermark"):
     """
     Detect watermarks and return bounding boxes WITHOUT creating mask or inpainting.
     Used for preview mode to show what would be detected.
@@ -587,8 +587,8 @@ def main(input_path: str, output_path: str, preview: bool, overwrite: bool, tran
         import random
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
-        florence_model = Florence2ForConditionalGeneration.from_pretrained("florence-community/Florence-2-large").to(device).eval()
-        florence_processor = AutoProcessor.from_pretrained("florence-community/Florence-2-large")
+        florence_model = AutoModelForCausalLM.from_pretrained("florence-community/Florence-2-large", trust_remote_code=True).to(device).eval()
+        florence_processor = AutoProcessor.from_pretrained("florence-community/Florence-2-large", trust_remote_code=True)
 
         # Get sample image from input
         if input_path.is_dir():
@@ -658,8 +658,8 @@ def main(input_path: str, output_path: str, preview: bool, overwrite: bool, tran
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Using device: {device}")
-    florence_model = Florence2ForConditionalGeneration.from_pretrained("florence-community/Florence-2-large").to(device).eval()
-    florence_processor = AutoProcessor.from_pretrained("florence-community/Florence-2-large")
+    florence_model = AutoModelForCausalLM.from_pretrained("florence-community/Florence-2-large", trust_remote_code=True).to(device).eval()
+    florence_processor = AutoProcessor.from_pretrained("florence-community/Florence-2-large", trust_remote_code=True)
     logger.info("Florence-2 Model loaded")
 
     if not transparent:
