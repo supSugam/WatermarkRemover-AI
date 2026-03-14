@@ -6,7 +6,7 @@ import numpy as np
 from PIL import Image
 from io import BytesIO
 from pathlib import Path
-from transformers import AutoProcessor, AutoModelForCausalLM
+from transformers import AutoProcessor, AutoModelForCausalLM, AutoModelForImageTextToText, AutoModel
 from iopaint.model_manager import ModelManager
 from iopaint.schema import HDStrategy, LDMSampler, InpaintRequest as Config
 
@@ -25,7 +25,15 @@ class WatermarkBridge:
     def load_models(self, detection_model_id="florence-community/Florence-2-large"):
         try:
             print(f"Loading detection model: {detection_model_id}...", file=sys.stderr)
-            self.florence_model = AutoModelForCausalLM.from_pretrained(detection_model_id, trust_remote_code=True).to(self.device).eval()
+            # Try native ImageTextToText first (Transformers 4.42+), fallback to CausalLM (Remote Code / Old Versions), then base AutoModel
+            try:
+                self.florence_model = AutoModelForImageTextToText.from_pretrained(detection_model_id, trust_remote_code=True).to(self.device).eval()
+            except Exception:
+                try:
+                    self.florence_model = AutoModelForCausalLM.from_pretrained(detection_model_id, trust_remote_code=True).to(self.device).eval()
+                except Exception:
+                    self.florence_model = AutoModel.from_pretrained(detection_model_id, trust_remote_code=True).to(self.device).eval()
+            
             self.florence_processor = AutoProcessor.from_pretrained(detection_model_id, trust_remote_code=True)
             
             print("Loading inpainting model: lama...", file=sys.stderr)
