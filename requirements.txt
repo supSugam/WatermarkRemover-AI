@@ -2,8 +2,10 @@
 --extra-index-url https://download.pytorch.org/whl/cu124
 torch>=2.4.0
 torchvision>=0.19.0
-transformers>=4.50.0
-diffusers>=0.30.0
+# Must be pinned: newer diffusers requires peft>=0.17.0 but iopaint pins peft==0.7.1
+diffusers>=0.27.0,<0.29.0
+# Must be pinned: iopaint was designed for transformers 4.x
+transformers>=4.48.0,<5.0.0
 numpy<2
 
 # Image/Video processing
