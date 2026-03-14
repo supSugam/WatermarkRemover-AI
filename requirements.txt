@@ -3,18 +3,16 @@
 torch>=2.4.0
 torchvision>=0.19.0
 
-# HuggingFace ecosystem
-# transformers must be >=4.35 for Florence-2 trust_remote_code to work.
-# iopaint is installed --no-deps so it cannot downgrade these.
-transformers>=4.35.0,<5.0.0
-# diffusers 0.29+ checks peft>=0.17 but iopaint only provides peft==0.7.1 → stay <0.29
-diffusers>=0.27.0,<0.29.0
-# diffusers 0.27.x still imports cached_download which was removed in huggingface_hub 1.0
-huggingface-hub>=0.20.0,<1.0.0
+# Exact pins for iopaint + Florence-2 compatibility
+transformers==4.47.0
+diffusers==0.27.2
+huggingface-hub==0.25.2
+Pillow==9.5.0
+peft==0.7.1
+numpy<2
 
 # Computer vision
 opencv-python-headless>=4.8.0,<4.12.0
-numpy<2
 
 # Utilities
 loguru
@@ -22,3 +20,30 @@ click
 tqdm
 psutil
 pyyaml
+
+# iopaint transitive deps (to allow --no-deps install of iopaint itself)
+pydantic
+typer
+fastapi==0.108.0
+uvicorn
+einops
+omegaconf
+easydict
+yacs
+safetensors
+accelerate
+scipy
+kornia
+prettytable
+httpx
+aiohttp
+python-multipart
+python-socketio==5.7.2
+piexif==1.1.3
+controlnet-aux==0.0.3
+gradio==4.21.0
+# used for Florence-2
+timm
+# used for bridge
+filelock
+fsspec
