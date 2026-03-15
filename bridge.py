@@ -131,8 +131,8 @@ class WatermarkBridge:
                 providers = ort.get_available_providers()
                 if 'CUDAExecutionProvider' in providers:
                     preferred = ['CUDAExecutionProvider', 'CPUExecutionProvider']
-                elif 'ROCmExecutionProvider' in providers:
-                    preferred = ['ROCmExecutionProvider', 'CPUExecutionProvider']
+                elif 'ROCMExecutionProvider' in providers:
+                    preferred = ['ROCMExecutionProvider', 'CPUExecutionProvider']
                 else:
                     preferred = ['CPUExecutionProvider']
 
