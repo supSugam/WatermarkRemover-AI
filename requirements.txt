@@ -1,7 +1,4 @@
 # Modernized requirements for native Florence-2 and stable iopaint
---extra-index-url https://download.pytorch.org/whl/cu124
-torch>=2.4.0
-torchvision>=0.19.0
 
 # transformers >= 4.45 includes native Florence-2 support
 transformers>=4.45.0
@@ -34,7 +31,7 @@ timm
 # used for Florence-2
 einops
 # background removal
-rembg[gpu]
+# (rembg installed dynamically by Rust setup based on hardware)
 # bridge dependencies
 filelock
 fsspec

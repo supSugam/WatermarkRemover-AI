@@ -122,15 +122,38 @@ class WatermarkBridge:
     def remove_background(self, image_path):
         try:
             from rembg import remove, new_session
+            import os
 
             # Lazy-load rembg session on first use
+            # Redirect stdout → stderr to prevent ONNX/rembg from corrupting JSON protocol
             if self.rembg_session is None:
-                print("Loading rembg session (first use)...", file=sys.stderr)
-                self.rembg_session = new_session()
+                import onnxruntime as ort
+                providers = ort.get_available_providers()
+                if 'CUDAExecutionProvider' in providers:
+                    preferred = ['CUDAExecutionProvider', 'CPUExecutionProvider']
+                elif 'ROCmExecutionProvider' in providers:
+                    preferred = ['ROCmExecutionProvider', 'CPUExecutionProvider']
+                else:
+                    preferred = ['CPUExecutionProvider']
+
+                print(f"Loading rembg session (first use)... Preferred providers: {preferred}", file=sys.stderr)
+                old_stdout = sys.stdout
+                sys.stdout = sys.stderr
+                try:
+                    self.rembg_session = new_session('u2net', providers=preferred)
+                finally:
+                    sys.stdout = old_stdout
                 print("rembg session loaded.", file=sys.stderr)
 
             image = Image.open(image_path).convert("RGB")
-            result = remove(image, session=self.rembg_session)
+
+            # Redirect stdout during processing too — ONNX runtime can print diagnostics
+            old_stdout = sys.stdout
+            sys.stdout = sys.stderr
+            try:
+                result = remove(image, session=self.rembg_session)
+            finally:
+                sys.stdout = old_stdout
 
             # result is RGBA PIL Image — encode as PNG to preserve transparency
             buffered = BytesIO()
