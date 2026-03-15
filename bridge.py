@@ -114,7 +114,8 @@ class WatermarkBridge:
 
             return {
                 "status": "success",
-                "image_base64": img_str
+                "image_base64": img_str,
+                "device_used": str(self.device)
             }
         except Exception as e:
             return {"error": str(e)}
@@ -159,10 +160,13 @@ class WatermarkBridge:
             buffered = BytesIO()
             result.save(buffered, format="PNG")
             img_str = base64.b64encode(buffered.getvalue()).decode()
+            
+            provider_used = self.rembg_session.inner_session.get_providers()[0] if self.rembg_session and hasattr(self.rembg_session, 'inner_session') else 'Unknown'
 
             return {
                 "status": "success",
-                "image_base64": img_str
+                "image_base64": img_str,
+                "provider_used": provider_used
             }
         except Exception as e:
             return {"error": str(e)}
