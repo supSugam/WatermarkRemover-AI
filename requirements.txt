@@ -33,6 +33,8 @@ yacs
 timm
 # used for Florence-2
 einops
+# background removal
+rembg[gpu]
 # bridge dependencies
 filelock
 fsspec

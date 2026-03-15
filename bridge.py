@@ -23,6 +23,7 @@ class WatermarkBridge:
         self.inpainting_model = None
         self.inpainting_model_id = None
         self.is_ready = False
+        self.rembg_session = None
 
     def load_models(self, detection_model_id="florence-community/Florence-2-large", inpainting_model_id="lama"):
         try:
@@ -118,6 +119,31 @@ class WatermarkBridge:
         except Exception as e:
             return {"error": str(e)}
 
+    def remove_background(self, image_path):
+        try:
+            from rembg import remove, new_session
+
+            # Lazy-load rembg session on first use
+            if self.rembg_session is None:
+                print("Loading rembg session (first use)...", file=sys.stderr)
+                self.rembg_session = new_session()
+                print("rembg session loaded.", file=sys.stderr)
+
+            image = Image.open(image_path).convert("RGB")
+            result = remove(image, session=self.rembg_session)
+
+            # result is RGBA PIL Image — encode as PNG to preserve transparency
+            buffered = BytesIO()
+            result.save(buffered, format="PNG")
+            img_str = base64.b64encode(buffered.getvalue()).decode()
+
+            return {
+                "status": "success",
+                "image_base64": img_str
+            }
+        except Exception as e:
+            return {"error": str(e)}
+
 def main():
     bridge = WatermarkBridge()
     print(json.dumps({"status": "bridge_started"}))
@@ -146,6 +172,12 @@ def main():
                 )
                 print(json.dumps(result))
             
+            elif cmd == "remove_bg":
+                result = bridge.remove_background(
+                    request.get("path")
+                )
+                print(json.dumps(result))
+
             elif cmd == "ping":
                 print(json.dumps({
                     "status": "pong", 
