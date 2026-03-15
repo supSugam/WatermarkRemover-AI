@@ -8,7 +8,9 @@ def download_model(model_name: str, models_dir: str):
     print(f"Starting download for {model_name}...")
     
     if model_name.lower() == "lama":
-        lama_dir = os.path.join(models_dir, "torch", "hub", "checkpoints")
+        # Torch hub looks in $TORCH_HOME/hub/checkpoints
+        # Since we set TORCH_HOME to the models_dir, we put it in models_dir/hub/checkpoints
+        lama_dir = os.path.join(models_dir, "hub", "checkpoints")
         os.makedirs(lama_dir, exist_ok=True)
         lama_file = os.path.join(lama_dir, "big-lama.pt")
         

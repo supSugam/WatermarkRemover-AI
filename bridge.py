@@ -95,12 +95,19 @@ class WatermarkBridge:
 
             # Inpaint
             result_np = remwm.process_image_with_lama(np.array(image), np.array(mask), self.inpainting_model)
-            result_pil = Image.fromarray(result_np)
+            inpainted_pil = Image.fromarray(result_np)
+
+            # CRITICAL FIX: The LaMa model subtly alters colors across the whole image
+            # when converting back and forth from tensors. We only want to apply the
+            # inpainted pixels where the watermark actually was (defined by the mask).
+            # So we composite the inpainted image ON TOP OF the original image using the mask.
+            final_pil = image.copy()
+            final_pil.paste(inpainted_pil, (0, 0), mask)
 
             # Convert to base64 for fast preview or save to temp?
             # For now, let's return base64
             buffered = BytesIO()
-            result_pil.save(buffered, format="PNG")
+            final_pil.save(buffered, format="PNG")
             img_str = base64.b64encode(buffered.getvalue()).decode()
 
             return {

@@ -251,7 +251,9 @@ def process_video(input_path, output_path, florence_model, florence_processor, m
                 result_image = background
             else:
                 lama_result = process_image_with_lama(np.array(pil_image), np.array(mask_image), model_manager)
-                result_image = Image.fromarray(cv2.cvtColor(lama_result, cv2.COLOR_BGR2RGB))
+                inpainted_pil = Image.fromarray(cv2.cvtColor(lama_result, cv2.COLOR_BGR2RGB))
+                result_image = pil_image.copy()
+                result_image.paste(inpainted_pil, (0, 0), mask_image)
             
             # Convert back to OpenCV format and write to output video
             frame_result = cv2.cvtColor(np.array(result_image), cv2.COLOR_RGB2BGR)
@@ -446,7 +448,9 @@ def process_video_two_pass(input_path, output_path, florence_model, florence_pro
                     result_image = background
                 else:
                     lama_result = process_image_with_lama(np.array(pil_image), np.array(mask), model_manager)
-                    result_image = Image.fromarray(cv2.cvtColor(lama_result, cv2.COLOR_BGR2RGB))
+                    inpainted_pil = Image.fromarray(cv2.cvtColor(lama_result, cv2.COLOR_BGR2RGB))
+                    result_image = pil_image.copy()
+                    result_image.paste(inpainted_pil, (0, 0), mask)
 
                 frame_result = cv2.cvtColor(np.array(result_image), cv2.COLOR_RGB2BGR)
             else:
@@ -528,7 +532,9 @@ def handle_one(image_path: Path, output_path: Path, florence_model, florence_pro
         result_image = make_region_transparent(image, mask_image)
     else:
         lama_result = process_image_with_lama(np.array(image), np.array(mask_image), model_manager)
-        result_image = Image.fromarray(cv2.cvtColor(lama_result, cv2.COLOR_BGR2RGB))
+        inpainted_pil = Image.fromarray(cv2.cvtColor(lama_result, cv2.COLOR_BGR2RGB))
+        result_image = image.copy()
+        result_image.paste(inpainted_pil, (0, 0), mask_image)
 
     # Determine output format
     if force_format:
