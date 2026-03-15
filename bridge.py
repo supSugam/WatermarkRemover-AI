@@ -3,6 +3,7 @@ import json
 import base64
 import torch
 import numpy as np
+import cv2
 from PIL import Image
 from io import BytesIO
 from pathlib import Path
@@ -95,7 +96,7 @@ class WatermarkBridge:
 
             # Inpaint
             result_np = remwm.process_image_with_lama(np.array(image), np.array(mask), self.inpainting_model)
-            inpainted_pil = Image.fromarray(result_np)
+            inpainted_pil = Image.fromarray(cv2.cvtColor(result_np, cv2.COLOR_BGR2RGB))
 
             # CRITICAL FIX: The LaMa model subtly alters colors across the whole image
             # when converting back and forth from tensors. We only want to apply the
