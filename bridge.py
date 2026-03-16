@@ -17,7 +17,12 @@ import remwm
 
 class WatermarkBridge:
     def __init__(self):
-        self.device = "cuda" if torch.cuda.is_available() else "cpu"
+        if torch.cuda.is_available():
+            self.device = "cuda"
+        elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+            self.device = "mps"
+        else:
+            self.device = "cpu"
         self.florence_model = None
         self.florence_processor = None
         self.inpainting_model = None
@@ -129,19 +134,31 @@ class WatermarkBridge:
             # Redirect stdout → stderr to prevent ONNX/rembg from corrupting JSON protocol
             if self.rembg_session is None:
                 import onnxruntime as ort
-                providers = ort.get_available_providers()
-                if 'CUDAExecutionProvider' in providers:
-                    preferred = ['CUDAExecutionProvider', 'CPUExecutionProvider']
-                elif 'ROCMExecutionProvider' in providers:
-                    preferred = ['ROCMExecutionProvider', 'CPUExecutionProvider']
-                else:
-                    preferred = ['CPUExecutionProvider']
+                available = ort.get_available_providers()
+                
+                # Universal provider prioritization: 
+                # CUDA (Nvidia) > ROCM (AMD dGPU) > CoreML (Apple) > DirectML (Windows) > OpenVINO (CPU/iGPU Turbo) > CPU
+                priority_list = [
+                    'CUDAExecutionProvider', 
+                    'ROCMExecutionProvider', 
+                    'CoreMLExecutionProvider', 
+                    'DirectMLExecutionProvider', 
+                    'DmlExecutionProvider', 
+                    'OpenVINOExecutionProvider', 
+                    'CPUExecutionProvider'
+                ]
+                preferred = [p for p in priority_list if p in available]
+                
+                # If we use OpenVINO, log it as Turbo Mode
+                if 'OpenVINOExecutionProvider' in preferred and preferred[0] == 'OpenVINOExecutionProvider':
+                    print("Turbo Mode Active: Using OpenVINO for high-performance inference.", file=sys.stderr)
 
-                print(f"Loading rembg session (first use)... Preferred providers: {preferred}", file=sys.stderr)
+
+                print(f"Loading rembg session (first use)... Selected providers: {preferred}", file=sys.stderr)
                 old_stdout = sys.stdout
                 sys.stdout = sys.stderr
                 try:
-                    self.rembg_session = new_session('u2net', providers=preferred)
+                    self.rembg_session = new_session('isnet-general-use', providers=preferred)
                 finally:
                     sys.stdout = old_stdout
                 print("rembg session loaded.", file=sys.stderr)
@@ -161,12 +178,19 @@ class WatermarkBridge:
             result.save(buffered, format="PNG")
             img_str = base64.b64encode(buffered.getvalue()).decode()
             
-            provider_used = self.rembg_session.inner_session.get_providers()[0] if self.rembg_session and hasattr(self.rembg_session, 'inner_session') else 'Unknown'
+
+
+            # Identify active provider
+            device_used = 'CPU'
+            if self.rembg_session and hasattr(self.rembg_session, 'inner_session'):
+                active_providers = self.rembg_session.inner_session.get_providers()
+                if active_providers:
+                    device_used = active_providers[0]
 
             return {
                 "status": "success",
                 "image_base64": img_str,
-                "provider_used": provider_used
+                "device_used": device_used
             }
         except Exception as e:
             return {"error": str(e)}
@@ -174,7 +198,10 @@ class WatermarkBridge:
 def main():
     bridge = WatermarkBridge()
     print(json.dumps({"status": "bridge_started"}))
-    sys.stdout.flush()
+    try:
+        sys.stdout.flush()
+    except Exception:
+        return
     
     # Listen for commands
     for line in sys.stdin:
@@ -213,10 +240,19 @@ def main():
                     "inpainting_model": bridge.inpainting_model_id
                 }))
                 
-            sys.stdout.flush()
+            try:
+                sys.stdout.flush()
+            except BrokenPipeError:
+                break
+            except Exception:
+                break
         except Exception as e:
-            print(json.dumps({"error": f"Bridge error: {e}"}))
-            sys.stdout.flush()
+            # Command processing error
+            print(json.dumps({"error": f"Bridge error: {e}"}), file=sys.stderr)
+            try:
+                sys.stdout.flush()
+            except Exception:
+                break
 
 if __name__ == "__main__":
     main()

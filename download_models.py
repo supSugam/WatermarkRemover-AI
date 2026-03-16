@@ -29,6 +29,23 @@ def download_model(model_name: str, models_dir: str):
             reporthook=report_hook
         )
         print("\nDownload complete!")
+    elif model_name.lower() == "rembg":
+        rembg_file = os.path.join(models_dir, "isnet-general-use.onnx")
+        
+        print("Downloading rembg model (isnet-general-use ~180MB)...")
+        def report_hook(count, block_size, total_size):
+            if total_size > 0:
+                percent = int(count * block_size * 100 / total_size)
+                if percent % 10 == 0:
+                    sys.stdout.write(f"Downloading rembg: {min(percent, 100)}%\n")
+                    sys.stdout.flush()
+
+        urllib.request.urlretrieve(
+            "https://github.com/danielgatis/rembg/releases/download/v0.0.0/isnet-general-use.onnx",
+            rembg_file,
+            reporthook=report_hook
+        )
+        print("\nDownload complete!")
     else:
         # Assumed florence model
         m_id = f"florence-community/{model_name.replace('florence-2-', 'Florence-2-')}"
