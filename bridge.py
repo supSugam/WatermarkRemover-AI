@@ -81,20 +81,49 @@ class WatermarkBridge:
             traceback.print_exc(file=sys.stderr)
             return False
 
-    def process_image(self, image_path, max_bbox_percent=10.0, detection_prompt="watermark"):
+    def process_image(self, image_path, max_bbox_percent=10.0, detection_prompt="watermark", region=None):
         if not self.is_ready:
             return {"error": "Models not loaded"}
 
         try:
             image = Image.open(image_path).convert("RGB")
-            mask = remwm.get_watermark_mask(
-                image, 
-                self.florence_model, 
-                self.florence_processor, 
-                self.device, 
-                max_bbox_percent, 
-                detection_prompt
-            )
+            width, height = image.size
+            
+            # If region is provided, we crop for detection and then map back to full mask
+            if region and isinstance(region, list) and len(region) == 4:
+                rx1, ry1, rx2, ry2 = region
+                px1, py1 = int(rx1 * width), int(ry1 * height)
+                px2, py2 = int(rx2 * width), int(ry2 * height)
+                
+                # Ensure valid coordinates
+                px1, px2 = sorted([max(0, min(width, px1)), max(0, min(width, px2))])
+                py1, py2 = sorted([max(0, min(height, py1)), max(0, min(height, py2))])
+                
+                if px2 - px1 > 10 and py2 - py1 > 10:
+                    crop = image.crop((px1, py1, px2, py2))
+                    crop_mask = remwm.get_watermark_mask(
+                        crop, 
+                        self.florence_model, 
+                        self.florence_processor, 
+                        self.device, 
+                        max_bbox_percent, 
+                        detection_prompt
+                    )
+                    # Create full full-size mask
+                    mask = Image.new("L", (width, height), 0)
+                    mask.paste(crop_mask, (px1, py1))
+                else:
+                    # Region too small or invalid, fallback to full image
+                    mask = remwm.get_watermark_mask(image, self.florence_model, self.florence_processor, self.device, max_bbox_percent, detection_prompt)
+            else:
+                mask = remwm.get_watermark_mask(
+                    image, 
+                    self.florence_model, 
+                    self.florence_processor, 
+                    self.device, 
+                    max_bbox_percent, 
+                    detection_prompt
+                )
 
             # Check if watermark was detected
             if mask.getextrema()[1] == 0:
@@ -222,7 +251,8 @@ def main():
                 result = bridge.process_image(
                     request.get("path"),
                     request.get("max_bbox_percent", 10.0),
-                    request.get("prompt", "watermark")
+                    request.get("prompt", "watermark"),
+                    region=request.get("region")
                 )
                 print(json.dumps(result))
             
